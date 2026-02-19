@@ -79,7 +79,7 @@
         };
 
         const POPISKY = {
-            "1mostotaceci": { "001": "XXX", "002": "XXX" },
+            "1mostotaceci": { "001": "XXX" },
             "1novykostelamost": { "001": "Interiér nového kostela" },
             "1okolibytu": { "001": "XXX" },
             "1pesizona": { "001": "XXX" },
@@ -106,15 +106,17 @@
             if (element) element.classList.add('last-visited');
             
             const grid = document.getElementById('thumbnail-grid');
-            grid.innerHTML = '<p>Načítám...</p>';
+            grid.innerHTML = '<p>Načítám archivní snímky...</p>';
             document.getElementById('gallery-overlay').style.display = 'block';
             document.body.style.overflow = 'hidden';
             history.pushState({ galleryOpen: true }, "");
 
             const zkratka = ZKRATKY[slozka] || "";
-            fotkyArray = []; grid.innerHTML = '';
+            fotkyArray = []; 
+            grid.innerHTML = '';
 
-            for (let i = 1; i <= 100; i++) {
+            // Zvýšen limit na 250 pro objemné galerie
+            for (let i = 1; i <= 250; i++) {
                 const cislo = i.toString().padStart(3, '0');
                 const zakladUrl = `galerie/${slozka}/${cislo}${zkratka}`;
                 
@@ -137,6 +139,9 @@
                     container.onclick = () => spustitLightbox(currentIdx);
                     container.innerHTML = `<img src="${nalezenaFotka.src}">${text ? '<div class="info-badge">i</div>' : ''}`;
                     grid.appendChild(container);
+                } else if (i > 10 && i % 20 === 0) {
+                     // Pokud narazíme na prázdné místo u vysokých čísel, dáváme tomu šanci, ale ne nekonečně.
+                     // (Necháme proběhnout celý cyklus pro jistotu).
                 }
             }
             if (fotkyArray.length === 0) grid.innerHTML = '<p>V této složce zatím nejsou žádné fotky.</p>';
