@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Archiv Taranto</title>
+    <link rel="stylesheet" href="https://unpkg.com/photoswipe/dist/photoswipe.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #ffffff; color: #000; text-align: center; }
+        .map-container { position: relative; display: inline-block; margin: 20px auto 5px; border: 3px solid #000; line-height: 0; }
+        .map-image { width: 100%; display: block; max-width: 1000px; height: auto; }
+        
+        .hotspot { position: absolute; width: 26px; height: 26px; background: rgba(255, 69, 0, 0.5); border: 2px solid rgba(0,0,0,0.6); border-radius: 50%; cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s ease; z-index: 10; }
+        .hotspot:hover { transform: translate(-50%, -50%) scale(1.3); background: rgba(255, 69, 0, 0.8); }
+        .hotspot.last-visited { background: rgba(128, 128, 128, 0.7); border-color: rgba(60, 60, 60, 0.9); }
+
+        .extra-galleries { margin: 0 auto 40px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; max-width: 1000px; padding: 0 10px; }
+        .extra-btn { background: transparent; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.85rem; display: flex; align-items: center; }
+        .extra-btn.last-visited { color: #888; }
+        .btn-dot { width: 12px; height: 12px; background: rgba(255, 69, 0, 0.7); border: 1px solid #000; border-radius: 50%; margin-right: 8px; }
+        .extra-btn.last-visited .btn-dot { background: rgba(128, 128, 128, 0.7); }
+
+        #gallery-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 1000; overflow-y: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; max-width: 1100px; margin: 40px auto 80px; padding: 20px; }
+        .thumb-container { position: relative; cursor: pointer; border: 2px solid #000; line-height: 0; overflow: hidden; background: #f9f9f9; }
+        .thumb-container img { width: 100%; height: 160px; object-fit: cover; display: block; }
+        .info-badge { position: absolute; top: 5px; right: 5px; background: #000; color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; z-index: 5; }
+        .close-btn { position: fixed; top: 20px; right: 20px; background: #000; color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 24px; z-index: 2000; }
+        
+        .pswp__bg { background: #ffffff !important; opacity: 1 !important; }
+        .pswp__img { border: 2px solid #000 !important; }
+        .pswp__button--arrow--prev, .pswp__button--arrow--next, .pswp__button--close, .pswp__counter { filter: invert(1); }
+        
+        /* Nové nastavení popisku - teď je "vytlačený" blíž k fotce */
+        .custom-caption-container { position: absolute; bottom: 5px; left: 0; width: 100%; color: #000; display: flex; justify-content: center; z-index: 10; pointer-events: none; }
+        .custom-caption-content { width: 90%; max-width: 650px; text-align: center; font-size: 1.1rem; line-height: 1.2; font-weight: 500; background: rgba(255,255,255,0.8); padding: 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="map-container">
+        <img src="planek.jpg" class="map-image">
+        <div class="hotspot" title="Most Otočný" style="top: 56%;left: 33%;" onclick="otevritMrizku('1mostotaceci', this)"></div>
+        <div class="hotspot" title="Nový kostel u mostu" style="top: 56%;left: 69%;" onclick="otevritMrizku('1novykostelamost', this)"></div>
+        <div class="hotspot" title="Okolí bytu" style="top: 73%;left: 44%;" onclick="otevritMrizku('1okolibytu', this)"></div>
+        <div class="hotspot" title="Pěší zóna" style="top: 60%;left: 41%;" onclick="otevritMrizku('1pesizona', this)"></div>
+        <div class="hotspot" title="U soudu" style="top: 63%;left: 35%;" onclick="otevritMrizku('1usoudu', this)"></div>
+        <div class="hotspot" title="U trhu" style="top: 63%;left: 50%;" onclick="otevritMrizku('1utrhu', this)"></div>
+        <div class="hotspot" title="U parku" style="top: 51%;left: 37%;" onclick="otevritMrizku('1uparku', this)"></div>
+        <div class="hotspot" title="Kamenný most" style="top: 44%;left: 23%;" onclick="otevritMrizku('2kamennymost', this)"></div>
+        <div class="hotspot" title="Rybářský přístav" style="top: 48%;left: 28%;" onclick="otevritMrizku('2rybarskypristav', this)"></div>
+        <div class="hotspot" title="U hradu" style="top: 58%;left: 31%;" onclick="otevritMrizku('2uhradu', this)"></div>
+        <div class="hotspot" title="Vechia" style="top: 53%;left: 25%;" onclick="otevritMrizku('2vechia', this)"></div>
+        <div class="hotspot" title="K nádraží" style="top: 38%;left: 21%;" onclick="otevritMrizku('3knadrazi', this)"></div>
+        <div class="hotspot" title="Malé moře" style="top: 28%;left: 51%;" onclick="otevritMrizku('3malemore', this)"></div>
+        <div class="hotspot" title="Tamburi" style="top: 29%;left: 23%;" onclick="otevritMrizku('3tamburi', this)"></div>
+    </div>
+
+    <div class="extra-galleries">
+        <div class="extra-btn" onclick="otevritMrizku('4armada', this)"><span class="btn-dot"></span>Armáda</div>
+        <div class="extra-btn" onclick="otevritMrizku('4celkovepohledy', this)"><span class="btn-dot"></span>Celkové pohledy</div>
+        <div class="extra-btn" onclick="otevritMrizku('4okolmesta', this)"><span class="btn-dot"></span>Okolí města</div>
+        <div class="extra-btn" onclick="otevritMrizku('4nevim', this)"><span class="btn-dot"></span>Ostatní</div>
+    </div>
+
+    <div id="gallery-overlay">
+        <button class="close-btn" onclick="zavritMrizku()">×</button>
+        <div class="grid" id="thumbnail-grid"></div>
+    </div>
+
+    <script type="module">
+        import PhotoSwipeLightbox from 'https://unpkg.com/photoswipe/dist/photoswipe-lightbox.esm.js';
+
+        const ZKRATKY = {
+            "1mostotaceci": "most", "1novykostelamost": "kost", "1okolibytu": "byt",
+            "1pesizona": "pesi", "1usoudu": "soud", "1utrhu": "trh", "1uparku": "park",
+            "2kamennymost": "kam", "2rybarskypristav": "ryb", "2uhradu": "hrad", "2vechia": "vech",
+            "3knadrazi": "nad", "3malemore": "male", "3tamburi": "tam",
+            "4armada": "arm", "4celkovepohledy": "celk", "4okolmesta": "okol", "4nevim": "ost"
+        };
+
+        const POPISKY = {
+            "1mostotaceci": { "001": "XXX", "002": "XXX", "003": "XXX" },
+            "1novykostelamost": { "001": "XXX" },
+            "1okolibytu": { "001": "XXX" },
+            "1pesizona": { "001": "XXX" },
+            "1usoudu": { "001": "XXX" },
+            "1utrhu": { "001": "XXX" },
+            "1uparku": { "001": "XXX" },
+            "2kamennymost": { "001": "XXX" },
+            "2rybarskypristav": { "001": "XXX" },
+            "2uhradu": { "001": "XXX" },
+            "2vechia": { "001": "XXX" },
+            "3knadrazi": { "001": "XXX" },
+            "3malemore": { "001": "XXX" },
+            "3tamburi": { "001": "XXX" },
+            "4armada": { "001": "XXX" },
+            "4celkovepohledy": { "001": "XXX" },
+            "4okolmesta": { "001": "XXX" },
+            "4nevim": { "001": "XXX" }
+        };
+
+        let fotkyArray = [];
+
+        window.otevritMrizku = async function(slozka, element) {
+            document.querySelectorAll('.hotspot, .extra-btn').forEach(el => el.classList.remove('last-visited'));
+            if (element) element.classList.add('last-visited');
+            
+            const grid = document.getElementById('thumbnail-grid');
+            grid.innerHTML = '<p>Načítám...</p>';
+            document.getElementById('gallery-overlay').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            history.pushState({ galleryOpen: true }, "");
+
+            const zkratka = ZKRATKY[slozka] || "";
+            fotkyArray = []; grid.innerHTML = '';
+
+            for (let i = 1; i <= 100; i++) {
+                const cislo = i.toString().padStart(3, '0');
+                const zakladUrl = `galerie/${slozka}/${cislo}${zkratka}`;
+                
+                // Hledání přípon: .jpg, .jpeg, .png
+                let finalUrl = "";
+                let imgData = await getImageDimensions(zakladUrl + ".jpg");
+                if (imgData) finalUrl = zakladUrl + ".jpg";
+                
+                if (!imgData) {
+                    imgData = await getImageDimensions(zakladUrl + ".jpeg");
+                    if (imgData) finalUrl = zakladUrl + ".jpeg";
+                }
+                
+                if (!imgData) {
+                    imgData = await getImageDimensions(zakladUrl + ".png");
+                    if (imgData) finalUrl = zakladUrl + ".png";
+                }
+                
+                if (imgData) {
+                    const text = (POPISKY[slozka] && POPISKY[slozka][cislo]) ? POPISKY[slozka][cislo] : "";
+                    const currentIdx = fotkyArray.length;
+                    fotkyArray.push({ src: finalUrl, w: imgData.w, h: imgData.h, title: text });
+                    
+                    const container = document.createElement('div');
+                    container.className = 'thumb-container';
+                    container.onclick = () => spustitLightbox(currentIdx);
+                    container.innerHTML = `<img src="${finalUrl}">${text ? '<div class="info-badge">i</div>' : ''}`;
+                    grid.appendChild(container);
+                }
+            }
+        };
+
+        function getImageDimensions(url) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve({ w: img.width, h: img.height });
+                img.onerror = () => resolve(null);
+                img.src = url;
+            });
+        }
+
+        function spustitLightbox(index) {
+            const lightbox = new PhotoSwipeLightbox({
+                dataSource: fotkyArray,
+                pswpModule: () => import('https://unpkg.com/photoswipe/dist/photoswipe.esm.js'),
+                padding: { top: 10, bottom: 40, left: 10, right: 10 }
+            });
+            lightbox.on('uiRegister', function() {
+                lightbox.pswp.ui.registerElement({
+                    name: 'custom-caption', order: 9, appendTo: 'wrapper',
+                    onInit: (el, pswp) => {
+                        el.className = 'custom-caption-container';
+                        const content = document.createElement('div');
+                        content.className = 'custom-caption-content';
+                        el.appendChild(content);
+                        pswp.on('change', () => { 
+                            const t = pswp.currSlide.data.title;
+                            content.innerHTML = t || '';
+                            el.style.display = t ? 'flex' : 'none';
+                        });
+                    }
+                });
+            });
+            lightbox.init(); 
+            lightbox.loadAndOpen(index);
+        }
+
+        window.zavritMrizku = function(shouldGoBack = true) {
+            document.getElementById('gallery-overlay').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            if (shouldGoBack && history.state && history.state.galleryOpen) history.back();
+        };
+
+        window.onpopstate = function() {
+            if (document.getElementById('gallery-overlay').style.display === 'block') zavritMrizku(false);
+        };
+    </script>
+</body>
+</html>
