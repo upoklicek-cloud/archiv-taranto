@@ -31,7 +31,6 @@
         .pswp__img { border: 2px solid #000 !important; }
         .pswp__button--arrow--prev, .pswp__button--arrow--next, .pswp__button--close, .pswp__counter { filter: invert(1); }
         
-        /* Nové nastavení popisku - teď je "vytlačený" blíž k fotce */
         .custom-caption-container { position: absolute; bottom: 5px; left: 0; width: 100%; color: #000; display: flex; justify-content: center; z-index: 10; pointer-events: none; }
         .custom-caption-content { width: 90%; max-width: 650px; text-align: center; font-size: 1.1rem; line-height: 1.2; font-weight: 500; background: rgba(255,255,255,0.8); padding: 5px; border-radius: 4px; }
     </style>
@@ -80,8 +79,8 @@
         };
 
         const POPISKY = {
-            "1mostotaceci": { "001": "XXX", "002": "XXX", "003": "XXX" },
-            "1novykostelamost": { "001": "XXX" },
+            "1mostotaceci": { "001": "XXX", "002": "XXX" },
+            "1novykostelamost": { "001": "Interiér nového kostela" },
             "1okolibytu": { "001": "XXX" },
             "1pesizona": { "001": "XXX" },
             "1usoudu": { "001": "XXX" },
@@ -119,33 +118,28 @@
                 const cislo = i.toString().padStart(3, '0');
                 const zakladUrl = `galerie/${slozka}/${cislo}${zkratka}`;
                 
-                // Hledání přípon: .jpg, .jpeg, .png
-                let finalUrl = "";
-                let imgData = await getImageDimensions(zakladUrl + ".jpg");
-                if (imgData) finalUrl = zakladUrl + ".jpg";
-                
-                if (!imgData) {
-                    imgData = await getImageDimensions(zakladUrl + ".jpeg");
-                    if (imgData) finalUrl = zakladUrl + ".jpeg";
+                let nalezenaFotka = null;
+                for (let pripona of ['.jpg', '.jpeg', '.png']) {
+                    const data = await getImageDimensions(zakladUrl + pripona);
+                    if (data) {
+                        nalezenaFotka = { src: zakladUrl + pripona, w: data.w, h: data.h };
+                        break; 
+                    }
                 }
                 
-                if (!imgData) {
-                    imgData = await getImageDimensions(zakladUrl + ".png");
-                    if (imgData) finalUrl = zakladUrl + ".png";
-                }
-                
-                if (imgData) {
+                if (nalezenaFotka) {
                     const text = (POPISKY[slozka] && POPISKY[slozka][cislo]) ? POPISKY[slozka][cislo] : "";
                     const currentIdx = fotkyArray.length;
-                    fotkyArray.push({ src: finalUrl, w: imgData.w, h: imgData.h, title: text });
+                    fotkyArray.push({ ...nalezenaFotka, title: text });
                     
                     const container = document.createElement('div');
                     container.className = 'thumb-container';
                     container.onclick = () => spustitLightbox(currentIdx);
-                    container.innerHTML = `<img src="${finalUrl}">${text ? '<div class="info-badge">i</div>' : ''}`;
+                    container.innerHTML = `<img src="${nalezenaFotka.src}">${text ? '<div class="info-badge">i</div>' : ''}`;
                     grid.appendChild(container);
                 }
             }
+            if (fotkyArray.length === 0) grid.innerHTML = '<p>V této složce zatím nejsou žádné fotky.</p>';
         };
 
         function getImageDimensions(url) {
