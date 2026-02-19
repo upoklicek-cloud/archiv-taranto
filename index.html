@@ -6,118 +6,86 @@
     <title>Archiv Taranto</title>
     <link rel="stylesheet" href="https://unpkg.com/photoswipe/dist/photoswipe.css">
     <style>
-        :root { --primary: #ff4500; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #fff; color: #000; overflow-x: hidden; }
+        body { font-family: sans-serif; margin: 0; background: #fff; overflow: hidden; touch-action: none; }
         
-        /* Hlavní kontejner pro mapu */
         #viewport { 
             width: 100vw; 
-            height: 60vh; /* Mapa zabere 60% výšky, zbytek je pro odkazy */
+            height: 100vh; 
             position: relative; 
             overflow: hidden; 
-            background: #eee;
-            touch-action: none; /* Důležité pro vlastní gesta */
-            border-bottom: 2px solid #000;
+            background: #e5e5e5;
         }
 
         #wrapper {
             position: absolute;
             transform-origin: 0 0;
             will-change: transform;
+            line-height: 0;
         }
 
         .map-image { 
-            height: 60vh; /* Základní výška odpovídá viewportu */
+            height: 100vh; 
             width: auto; 
             display: block;
         }
         
         .hotspot { 
-            position: absolute; width: 28px; height: 28px; 
-            background: rgba(255, 69, 0, 0.6); border: 2px solid #000; 
-            border-radius: 50%; transform: translate(-50%, -50%); z-index: 10;
+            position: absolute; 
+            width: 32px; height: 32px; 
+            background: rgba(210, 105, 30, 0.5); /* Cihlová barva dle obrázku */
+            border: 2px solid #000; 
+            border-radius: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 10;
         }
 
-        /* Sekce s odkazy pod mapou */
-        .links-container {
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        @media (max-width: 500px) { .links-container { grid-template-columns: 1fr; } }
-
-        .link-item {
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            text-align: center;
-            text-decoration: none;
-            color: #000;
-            font-weight: 500;
-            background: #f9f9f9;
-            cursor: pointer;
-        }
-        .link-item:active { background: #eee; }
-
-        /* Ovládací prvky */
+        /* Tlačítka +/- dle tvého vzoru */
         .controls {
-            position: absolute; bottom: 15px; right: 15px;
-            display: flex; flex-direction: column; gap: 8px; z-index: 80;
+            position: fixed; bottom: 30px; right: 20px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100;
         }
         .btn {
-            width: 44px; height: 44px; background: #fff; border: 2px solid #000;
-            font-size: 20px; font-weight: bold; border-radius: 50%;
+            width: 50px; height: 50px; background: #f8f9fa; border: 1.5px solid #000;
+            font-size: 28px; font-weight: 300; border-radius: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            color: #000;
         }
 
-        #hint-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.5); display: flex; justify-content: center; 
-            align-items: center; z-index: 100; pointer-events: none; transition: opacity 0.5s;
-        }
-        .hint-box { background: #fff; padding: 15px; border: 2px solid #000; border-radius: 10px; text-align: center; }
-
-        /* Galerie mřížka */
+        /* Galerie */
         #gallery-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 1000; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 15px; margin-top: 60px; }
-        .thumb { border: 1px solid #000; line-height: 0; }
+        .thumb { border: 1px solid #000; line-height: 0; background: #f0f0f0; }
         .thumb img { width: 100%; height: 140px; object-fit: cover; }
-        .close-btn { position: fixed; top: 10px; right: 10px; width: 45px; height: 45px; background: #000; color: #fff; border-radius: 50%; border: none; font-size: 24px; z-index: 1100; }
+        .close-btn { position: fixed; top: 15px; right: 15px; width: 45px; height: 45px; background: #000; color: #fff; border-radius: 50%; border: none; font-size: 24px; z-index: 1100; }
     </style>
 </head>
 <body>
 
     <div id="viewport">
-        <div id="hint-overlay">
-            <div class="hint-box">
-                <img src="https://img.icons8.com/ios/50/pinch-zoom-in.png" style="width:40px"><br>
-                <small>ZOOM & PAN</small>
-            </div>
-        </div>
-
         <div class="controls">
-            <button class="btn" onclick="doZoom(1.4)">+</button>
-            <button class="btn" onclick="doZoom(0.7)">-</button>
+            <button class="btn" onclick="zoomManual(1.4)">+</button>
+            <button class="btn" onclick="zoomManual(0.7)">-</button>
         </div>
 
         <div id="wrapper">
             <img src="planek.jpg" class="map-image" id="mapImg">
+            
             <div class="hotspot" style="top: 56%;left: 33%;" onclick="otevritMrizku('1mostotaceci')"></div>
             <div class="hotspot" style="top: 56%;left: 69%;" onclick="otevritMrizku('1novykostelamost')"></div>
             <div class="hotspot" style="top: 73%;left: 44%;" onclick="otevritMrizku('1okolibytu')"></div>
             <div class="hotspot" style="top: 60%;left: 41%;" onclick="otevritMrizku('1pesizona')"></div>
-            </div>
-    </div>
-
-    <div class="links-container">
-        <div class="link-item" onclick="otevritMrizku('1mostotaceci')">Most Otočný / Bridge</div>
-        <div class="link-item" onclick="otevritMrizku('1novykostelamost')">Nový kostel / Church</div>
-        <div class="link-item" onclick="otevritMrizku('1okolibytu')">Okolí bytu / Apartment</div>
-        <div class="link-item" onclick="otevritMrizku('4armada')">Armáda / Army</div>
-        <div class="link-item" onclick="otevritMrizku('4celkovepohledy')">Celkové pohledy / Views</div>
-        <div class="link-item" onclick="otevritMrizku('4nevim')">Ostatní / Other</div>
+            <div class="hotspot" style="top: 63%;left: 35%;" onclick="otevritMrizku('1usoudu')"></div>
+            <div class="hotspot" style="top: 63%;left: 50%;" onclick="otevritMrizku('1utrhu')"></div>
+            <div class="hotspot" style="top: 51%;left: 37%;" onclick="otevritMrizku('1uparku')"></div>
+            <div class="hotspot" style="top: 44%;left: 23%;" onclick="otevritMrizku('2kamennymost')"></div>
+            <div class="hotspot" style="top: 48%;left: 28%;" onclick="otevritMrizku('2rybarskypristav')"></div>
+            <div class="hotspot" style="top: 58%;left: 31%;" onclick="otevritMrizku('2uhradu')"></div>
+            <div class="hotspot" style="top: 53%;left: 25%;" onclick="otevritMrizku('2vechia')"></div>
+            <div class="hotspot" style="top: 38%;left: 21%;" onclick="otevritMrizku('3knadrazi')"></div>
+            <div class="hotspot" style="top: 28%;left: 51%;" onclick="otevritMrizku('3malemore')"></div>
+            <div class="hotspot" style="top: 29%;left: 23%;" onclick="otevritMrizku('3tamburi')"></div>
+        </div>
     </div>
 
     <div id="gallery-overlay">
@@ -129,20 +97,21 @@
     <script type="module">
         import PhotoSwipeLightbox from 'https://unpkg.com/photoswipe/dist/photoswipe-lightbox.esm.js';
 
-        const ZKRATKY = { "1mostotaceci":"most", "1novykostelamost":"kost", "1okolibytu":"byt", "4armada":"arm", "4celkovepohledy":"celk", "4nevim":"ost" };
+        const ZKRATKY = { 
+            "1mostotaceci":"most", "1novykostelamost":"kost", "1okolibytu":"byt", "1pesizona":"pesi", 
+            "1usoudu":"soud", "1utrhu":"trh", "1uparku":"park", "2kamennymost":"kam", 
+            "2rybarskypristav":"ryb", "2uhradu":"hrad", "2vechia":"vech", "3knadrazi":"nad", 
+            "3malemore":"male", "3tamburi":"tam" 
+        };
 
-        // --- ZOOM LOGIKA ---
-        const view = document.getElementById('viewport');
-        const wrap = document.getElementById('wrapper');
         let scale = 1, x = 0, y = 0;
+        const wrap = document.getElementById('wrapper');
+        const view = document.getElementById('viewport');
 
+        // Nastavení Hammer.js pro gesta
         const mc = new Hammer.Manager(view);
         mc.add(new Hammer.Pinch());
         mc.add(new Hammer.Pan({ threshold: 0 }));
-
-        mc.on("pinchstart panstart", () => {
-            document.getElementById('hint-overlay').style.opacity = '0';
-        });
 
         mc.on("panmove", (e) => {
             wrap.style.transform = `translate(${x + e.deltaX}px, ${y + e.deltaY}px) scale(${scale})`;
@@ -153,48 +122,61 @@
         });
 
         mc.on("pinchmove", (e) => {
-            const newScale = Math.max(1, Math.min(scale * e.scale, 4));
-            wrap.style.transform = `translate(${x}px, ${y}px) scale(${newScale})`;
+            const currentScale = Math.max(1, Math.min(scale * e.scale, 5));
+            wrap.style.transform = `translate(${x}px, ${y}px) scale(${currentScale})`;
         });
 
         mc.on("pinchend", (e) => {
-            scale = Math.max(1, Math.min(scale * e.scale, 4));
+            scale = Math.max(1, Math.min(scale * e.scale, 5));
         });
 
-        window.doZoom = (s) => {
-            document.getElementById('hint-overlay').style.opacity = '0';
-            scale = Math.max(1, Math.min(scale * s, 4));
+        window.zoomManual = (factor) => {
+            const oldScale = scale;
+            scale = Math.max(1, Math.min(scale * factor, 5));
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            x = centerX - (centerX - x) * (scale / oldScale);
+            y = centerY - (centerY - y) * (scale / oldScale);
             wrap.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
         };
 
-        // --- GALERIE ---
+        // Galerie (podpora JPG/PNG, limit 250)
         window.otevritMrizku = async function(slozka) {
             const grid = document.getElementById('thumbnail-grid');
             grid.innerHTML = 'Načítám...';
             document.getElementById('gallery-overlay').style.display = 'block';
-            const zkratka = ZKRATKY[slozka];
-            let fotkyArray = [];
+            const zk = ZKRATKY[slozka];
+            let fotky = [];
             grid.innerHTML = '';
 
             for (let i = 1; i <= 250; i++) {
-                const cislo = i.toString().padStart(3, '0');
-                const path = `galerie/${slozka}/${cislo}${zkratka}.jpg`;
-                const res = await fetch(path, { method: 'HEAD' });
-                if (res.ok) {
-                    const currentIdx = fotkyArray.length;
-                    fotkyArray.push({ src: path, w: 1200, h: 800 }); // Rozměry se doladí při otevření
+                const c = i.toString().padStart(3, '0');
+                const base = `galerie/${slozka}/${c}${zk}`;
+                let src = null;
+
+                for (let ext of ['.jpg', '.png', '.jpeg']) {
+                    const h = await fetch(base + ext, { method: 'HEAD' });
+                    if (h.ok) { src = base + ext; break; }
+                }
+
+                if (src) {
+                    const img = new Image();
+                    img.src = src;
+                    const idx = fotky.length;
+                    fotky.push({ src: src, w: 1200, h: 900 });
+                    
                     const d = document.createElement('div');
                     d.className = 'thumb';
-                    d.innerHTML = `<img src="${path}" loading="lazy">`;
+                    d.innerHTML = `<img src="${src}" loading="lazy">`;
                     d.onclick = () => {
                         const lb = new PhotoSwipeLightbox({
-                            dataSource: fotkyArray,
+                            dataSource: fotky,
                             pswpModule: () => import('https://unpkg.com/photoswipe/dist/photoswipe.esm.js')
                         });
-                        lb.init(); lb.loadAndOpen(currentIdx);
+                        lb.init(); lb.loadAndOpen(idx);
                     };
                     grid.appendChild(d);
-                } else if (i > 10 && i % 20 === 0) break;
+                } else if (i > 15 && i % 25 === 0) break;
             }
         };
 
