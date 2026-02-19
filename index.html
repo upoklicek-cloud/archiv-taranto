@@ -6,14 +6,17 @@
     <title>Archiv Taranto</title>
     <link rel="stylesheet" href="https://unpkg.com/photoswipe/dist/photoswipe.css">
     <style>
-        body { font-family: sans-serif; margin: 0; background: #fff; overflow: hidden; touch-action: none; }
+        body { font-family: sans-serif; margin: 0; background: #fff; color: #000; overflow-x: hidden; }
         
+        /* Viewport zabírá 70% výšky, zbytek je pro odkazy */
         #viewport { 
             width: 100vw; 
-            height: 100vh; 
+            height: 70vh; 
             position: relative; 
             overflow: hidden; 
-            background: #e5e5e5;
+            background: #f0f0f0;
+            touch-action: none;
+            border-bottom: 2px solid #000;
         }
 
         #wrapper {
@@ -23,8 +26,9 @@
             line-height: 0;
         }
 
+        /* Mapa se v základu přizpůsobí výšce viewportu, aby byla celá vidět */
         .map-image { 
-            height: 100vh; 
+            height: 70vh; 
             width: auto; 
             display: block;
         }
@@ -32,16 +36,16 @@
         .hotspot { 
             position: absolute; 
             width: 32px; height: 32px; 
-            background: rgba(210, 105, 30, 0.5); /* Cihlová barva dle obrázku */
+            background: rgba(210, 105, 30, 0.5); 
             border: 2px solid #000; 
             border-radius: 50%; 
             transform: translate(-50%, -50%); 
             z-index: 10;
         }
 
-        /* Tlačítka +/- dle tvého vzoru */
+        /* Tlačítka +/- */
         .controls {
-            position: fixed; bottom: 30px; right: 20px;
+            position: absolute; bottom: 20px; right: 20px;
             display: flex; flex-direction: column; gap: 10px; z-index: 100;
         }
         .btn {
@@ -49,13 +53,34 @@
             font-size: 28px; font-weight: 300; border-radius: 10px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            color: #000;
         }
+
+        /* Odkazy pod plánkem */
+        .links-section {
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .link-card {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fdfdfd;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .link-card:active { background: #eee; }
+        .link-card span { display: block; font-size: 12px; font-weight: normal; color: #666; }
 
         /* Galerie */
         #gallery-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 1000; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 15px; margin-top: 60px; }
-        .thumb { border: 1px solid #000; line-height: 0; background: #f0f0f0; }
+        .thumb { border: 1px solid #000; line-height: 0; }
         .thumb img { width: 100%; height: 140px; object-fit: cover; }
         .close-btn { position: fixed; top: 15px; right: 15px; width: 45px; height: 45px; background: #000; color: #fff; border-radius: 50%; border: none; font-size: 24px; z-index: 1100; }
     </style>
@@ -70,7 +95,6 @@
 
         <div id="wrapper">
             <img src="planek.jpg" class="map-image" id="mapImg">
-            
             <div class="hotspot" style="top: 56%;left: 33%;" onclick="otevritMrizku('1mostotaceci')"></div>
             <div class="hotspot" style="top: 56%;left: 69%;" onclick="otevritMrizku('1novykostelamost')"></div>
             <div class="hotspot" style="top: 73%;left: 44%;" onclick="otevritMrizku('1okolibytu')"></div>
@@ -88,6 +112,15 @@
         </div>
     </div>
 
+    <div class="links-section">
+        <div class="link-card" onclick="otevritMrizku('1mostotaceci')">Most Otočný <span>Bridge</span></div>
+        <div class="link-card" onclick="otevritMrizku('1novykostelamost')">Nový kostel <span>Church</span></div>
+        <div class="link-card" onclick="otevritMrizku('1okolibytu')">Okolí bytu <span>Apartment</span></div>
+        <div class="link-card" onclick="otevritMrizku('4armada')">Armáda <span>Army</span></div>
+        <div class="link-card" onclick="otevritMrizku('4celkovepohledy')">Celkové pohledy <span>Views</span></div>
+        <div class="link-card" onclick="otevritMrizku('4nevim')">Ostatní <span>Other</span></div>
+    </div>
+
     <div id="gallery-overlay">
         <button class="close-btn" onclick="zavritMrizku()">×</button>
         <div class="grid" id="thumbnail-grid"></div>
@@ -101,14 +134,13 @@
             "1mostotaceci":"most", "1novykostelamost":"kost", "1okolibytu":"byt", "1pesizona":"pesi", 
             "1usoudu":"soud", "1utrhu":"trh", "1uparku":"park", "2kamennymost":"kam", 
             "2rybarskypristav":"ryb", "2uhradu":"hrad", "2vechia":"vech", "3knadrazi":"nad", 
-            "3malemore":"male", "3tamburi":"tam" 
+            "3malemore":"male", "3tamburi":"tam", "4armada":"arm", "4celkovepohledy":"celk", "4nevim":"ost"
         };
 
         let scale = 1, x = 0, y = 0;
         const wrap = document.getElementById('wrapper');
         const view = document.getElementById('viewport');
 
-        // Nastavení Hammer.js pro gesta
         const mc = new Hammer.Manager(view);
         mc.add(new Hammer.Pinch());
         mc.add(new Hammer.Pan({ threshold: 0 }));
@@ -116,31 +148,23 @@
         mc.on("panmove", (e) => {
             wrap.style.transform = `translate(${x + e.deltaX}px, ${y + e.deltaY}px) scale(${scale})`;
         });
-
-        mc.on("panend", (e) => {
-            x += e.deltaX; y += e.deltaY;
-        });
-
+        mc.on("panend", (e) => { x += e.deltaX; y += e.deltaY; });
         mc.on("pinchmove", (e) => {
-            const currentScale = Math.max(1, Math.min(scale * e.scale, 5));
+            const currentScale = Math.max(0.5, Math.min(scale * e.scale, 5));
             wrap.style.transform = `translate(${x}px, ${y}px) scale(${currentScale})`;
         });
-
-        mc.on("pinchend", (e) => {
-            scale = Math.max(1, Math.min(scale * e.scale, 5));
-        });
+        mc.on("pinchend", (e) => { scale = Math.max(0.5, Math.min(scale * e.scale, 5)); });
 
         window.zoomManual = (factor) => {
             const oldScale = scale;
-            scale = Math.max(1, Math.min(scale * factor, 5));
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
+            scale = Math.max(0.5, Math.min(scale * factor, 5));
+            const centerX = view.clientWidth / 2;
+            const centerY = view.clientHeight / 2;
             x = centerX - (centerX - x) * (scale / oldScale);
             y = centerY - (centerY - y) * (scale / oldScale);
             wrap.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
         };
 
-        // Galerie (podpora JPG/PNG, limit 250)
         window.otevritMrizku = async function(slozka) {
             const grid = document.getElementById('thumbnail-grid');
             grid.innerHTML = 'Načítám...';
@@ -153,18 +177,15 @@
                 const c = i.toString().padStart(3, '0');
                 const base = `galerie/${slozka}/${c}${zk}`;
                 let src = null;
-
                 for (let ext of ['.jpg', '.png', '.jpeg']) {
                     const h = await fetch(base + ext, { method: 'HEAD' });
                     if (h.ok) { src = base + ext; break; }
                 }
-
                 if (src) {
                     const img = new Image();
                     img.src = src;
                     const idx = fotky.length;
                     fotky.push({ src: src, w: 1200, h: 900 });
-                    
                     const d = document.createElement('div');
                     d.className = 'thumb';
                     d.innerHTML = `<img src="${src}" loading="lazy">`;
