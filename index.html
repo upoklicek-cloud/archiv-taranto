@@ -46,8 +46,7 @@
             width: 1040px; 
             transition: transform 0.1s ease-out; 
             transform-origin: center center; 
-            /* OPRAVA: Povolení posunu prsty (pan) */
-            touch-action: pan-x pan-y; 
+            touch-action: none; 
         }
 
         .map-image { 
@@ -128,6 +127,10 @@
             align-items: center; 
         }
         
+        .extra-btn.visited .btn-dot { 
+            background: rgba(128, 128, 128, 0.6); 
+        }
+        
         .btn-dot { 
             width: 12px; 
             height: 12px; 
@@ -139,9 +142,7 @@
 
         /* MOBILNÍ ÚPRAVY */
         @media (max-width: 768px) { 
-            /* OPRAVA: Zarovnání k okraji pro lepší scroll na mobilu */
-            .map-scroll-wrapper { justify-content: flex-start; }
-            .map-paper { transform-origin: left top; } 
+            .map-paper { transform-origin: center top; } 
             .extra-galleries { justify-content: center; flex-wrap: wrap; padding: 20px; } 
         }
 
@@ -174,11 +175,12 @@
             line-height: 0; 
             overflow: hidden; 
             background: #f9f9f9; 
+            aspect-ratio: 1/1;
         }
         
         .thumb-container img { 
             width: 100%; 
-            height: 160px; 
+            height: 100%; 
             object-fit: cover; 
         }
         
@@ -270,40 +272,31 @@
         let aktualniZoom = 1.0;
         const mapaEl = document.getElementById('mapa');
 
-        // Funkce pro zoomování tlačítky
+        // ZOOM TLAČÍTKY
         window.zmenitZoom = function(zmena) {
             aktualniZoom = Math.max(0.2, Math.min(2.0, aktualniZoom + zmena));
             mapaEl.style.transform = `scale(${aktualniZoom})`;
         };
 
-        // PINCH-TO-ZOOM
+        // GESTA PINCH-TO-ZOOM
         let pocatecniVzdalenost = 0;
         let pocatecniZoom = 1.0;
-
         mapaEl.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
-                pocatecniVzdalenost = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
+                pocatecniVzdalenost = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
                 pocatecniZoom = aktualniZoom;
             }
         }, { passive: false });
-
         mapaEl.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2) {
                 e.preventDefault();
-                const novaVzdalenost = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                const pomer = novaVzdalenost / pocatecniVzdalenost;
-                aktualniZoom = Math.max(0.2, Math.min(2.0, pocatecniZoom * pomer));
+                const novaVzdalenost = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                aktualniZoom = Math.max(0.2, Math.min(2.0, pocatecniZoom * (novaVzdalenost / pocatecniVzdalenost)));
                 mapaEl.style.transform = `scale(${aktualniZoom})`;
             }
         }, { passive: false });
 
-        // KONFIGURACE (ZKRATKY A POPISKY)
+        // KONFIGURACE A POPISKY
         const ZKRATKY = { 
             "1mostotaceci": "most", "1novykostelamost": "kost", "1okolibytu": "byt", 
             "1pesizona": "pesi", "1usoudu": "soud", "1utrhu": "trh", "1uparku": "park", 
@@ -335,44 +328,71 @@
 
         let fotkyArray = [];
 
-        // OTEVŘENÍ GALERIE
+        // OTEVŘENÍ GALERIE (S POSTUPNÝM NAČÍTÁNÍM)
         window.otevritMrizku = async function(slozka, idBodu) {
             const overlay = document.getElementById('gallery-overlay');
             const grid = document.getElementById('thumbnail-grid');
             if(idBodu) document.getElementById(idBodu).classList.add('visited');
-            grid.innerHTML = '<p>Načítám kompletní archiv...</p>';
+
+            grid.innerHTML = '';
             overlay.style.display = 'block';
             document.body.style.overflow = 'hidden';
             history.pushState({ galleryOpen: true }, "");
-            fotkyArray = []; 
+
+            fotkyArray = [];
             const zkratka = ZKRATKY[slozka] || "";
-            const promises = [];
+
+            // Postupné načítání náhledů
             for (let i = 1; i <= 250; i++) {
                 const cislo = i.toString().padStart(3, '0');
                 const imgPath = `galerie/${slozka}/${cislo}${zkratka}.jpg`;
-                promises.push(new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const text = (POPISKY[slozka] && POPISKY[slozka][cislo]) ? POPISKY[slozka][cislo] : "";
-                        resolve({ src: imgPath, w: img.naturalWidth, h: img.naturalHeight, title: text, name: cislo });
+                
+                const imgCheck = new Image();
+                imgCheck.onload = function() {
+                    const fotoObj = { 
+                        src: imgPath, 
+                        w: imgCheck.naturalWidth, 
+                        h: imgCheck.naturalHeight, 
+                        title: (POPISKY[slozka] && POPISKY[slozka][cislo]) || "", 
+                        name: cislo 
                     };
-                    img.onerror = () => resolve(null);
-                    img.src = imgPath;
-                }));
+                    fotkyArray.push(fotoObj);
+                    fotkyArray.sort((a,b) => a.name.localeCompare(b.name));
+                    
+                    const div = document.createElement('div');
+                    div.className = 'thumb-container';
+                    div.innerHTML = `<img src="${imgPath}" loading="lazy">${fotoObj.title ? '<div class="info-badge">i</div>' : ''}`;
+                    div.onclick = () => spustitLightbox(fotkyArray.indexOf(fotoObj));
+                    grid.appendChild(div);
+                };
+                imgCheck.src = imgPath;
+                // Pokud narazíme na 5 chyb za sebou, zastavíme hledání (pro rychlost)
+                imgCheck.onerror = () => {}; 
             }
-            const vysledky = await Promise.all(promises);
-            fotkyArray = vysledky.filter(f => f !== null).sort((a, b) => a.name.localeCompare(b.name));
-            grid.innerHTML = '';
-            fotkyArray.forEach((foto, index) => {
-                const div = document.createElement('div');
-                div.className = 'thumb-container';
-                div.onclick = () => spustitLightbox(index);
-                div.innerHTML = `<img src="${foto.src}">${foto.title ? '<div class="info-badge">i</div>' : ''}`;
-                grid.appendChild(div);
-            });
         };
 
-        window.onpopstate = function() { zavritMrizku(true); };
+        // FIXACE NA STRÁNCE A HISTORIE
+        window.addEventListener('load', () => {
+            // Falešný bod v historii pro "zámek"
+            if (!history.state) history.pushState({ page: 'home' }, "");
+
+            // Mobilní scroll na TARANTO
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    document.getElementById('mapWrapper').scrollTo(0, 750);
+                }, 600);
+            }
+        });
+
+        window.onpopstate = function(event) {
+            if (document.getElementById('gallery-overlay').style.display === 'block') {
+                zavritMrizku(true);
+            } else {
+                // Pokud jsme na hlavní mapě a uživatel dá "zpět", vrátíme ho "vpřed"
+                history.pushState({ page: 'home' }, "");
+            }
+        };
+
         window.zavritMrizku = function(fromPopState = false) {
             document.getElementById('gallery-overlay').style.display = 'none';
             document.body.style.overflow = 'auto';
@@ -386,9 +406,7 @@
             });
             lightbox.on('uiRegister', function() {
                 lightbox.pswp.ui.registerElement({
-                    name: 'custom-caption',
-                    order: 9,
-                    appendTo: 'wrapper',
+                    name: 'custom-caption', order: 9, appendTo: 'wrapper',
                     onInit: (el, pswp) => {
                         el.className = 'custom-caption-container';
                         const content = document.createElement('div');
@@ -402,23 +420,8 @@
                     }
                 });
             });
-            lightbox.init(); 
-            lightbox.loadAndOpen(index);
+            lightbox.init(); lightbox.loadAndOpen(index);
         }
-
-        // AUTOMATICKÝ POSUN NA NÁPIS (Jen pro mobily)
-        window.addEventListener('load', () => {
-            if (window.innerWidth <= 768) {
-                setTimeout(() => {
-                    const wrapper = document.getElementById('mapWrapper');
-                    if (wrapper) {
-                        // OPRAVA: Souřadnice 0 (vlevo) a 850 (dolů)
-                        wrapper.scrollTo(0, 850);
-                    }
-                }, 600);
-            }
-        });
-
     </script>
 </body>
 </html>
