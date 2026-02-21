@@ -371,13 +371,18 @@
             }
         };
 
-        // FIXACE NA STRÁNCE A HISTORIE
+     // FIXACE NA STRÁNCE A HISTORIE
         window.addEventListener('load', () => {
             // Falešný bod v historii pro "zámek"
             if (!history.state) history.pushState({ page: 'home' }, "");
 
-            // Mobilní scroll na TARANTO
+            // Úpravy jen pro mobilní zobrazení
             if (window.innerWidth <= 768) {
+                // 1. Zvětšíme výsek (zoom) na 1.3 pro lepší čitelnost nápisu
+                aktualniZoom = 1.3;
+                mapaEl.style.transform = `scale(${aktualniZoom})`;
+
+                // 2. Odscrollujeme na nápis TARANTO (opraveno na 750)
                 setTimeout(() => {
                     document.getElementById('mapWrapper').scrollTo(0, 750);
                 }, 600);
@@ -425,3 +430,4 @@
     </script>
 </body>
 </html>
+
