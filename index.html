@@ -371,8 +371,8 @@
             }
         };
 
-     // FIXACE NA STRÁNCE A HISTORIE
-        window.addEventListener('load', () => {
+   // FIXACE NA STRÁNCE A HISTORIE
+        document.addEventListener('DOMContentLoaded', () => { // Změna z 'load' na 'DOMContentLoaded'
             // Falešný bod v historii pro "zámek"
             if (!history.state) history.pushState({ page: 'home' }, "");
 
@@ -384,11 +384,11 @@
 
                 // 2. Odscrollujeme na nápis TARANTO (opraveno na 750)
                 setTimeout(() => {
-                    document.getElementById('mapWrapper').scrollTo(0, 750);
-                }, 600);
+                    const wrapper = document.getElementById('mapWrapper');
+                    if (wrapper) wrapper.scrollTo(0, 750);
+                }, 300); // Můžeme i zkrátit čas z 600 na 300ms, bude to svižnější
             }
         });
-
         window.onpopstate = function(event) {
             if (document.getElementById('gallery-overlay').style.display === 'block') {
                 zavritMrizku(true);
@@ -430,4 +430,5 @@
     </script>
 </body>
 </html>
+
 
