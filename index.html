@@ -140,12 +140,6 @@
             margin-right: 8px; 
         }
 
-        /* MOBILNÍ ÚPRAVY */
-        @media (max-width: 768px) { 
-            .map-paper { transform-origin: center top; } 
-            .extra-galleries { justify-content: center; flex-wrap: wrap; padding: 20px; } 
-        }
-
         /* MŘÍŽKA NÁHLEDŮ (OVERLAY) */
         #gallery-overlay { 
             display: none; 
@@ -272,13 +266,11 @@
         let aktualniZoom = 1.0;
         const mapaEl = document.getElementById('mapa');
 
-        // ZOOM TLAČÍTKY
         window.zmenitZoom = function(zmena) {
             aktualniZoom = Math.max(0.2, Math.min(2.0, aktualniZoom + zmena));
             mapaEl.style.transform = `scale(${aktualniZoom})`;
         };
 
-        // GESTA PINCH-TO-ZOOM
         let pocatecniVzdalenost = 0;
         let pocatecniZoom = 1.0;
         mapaEl.addEventListener('touchstart', (e) => {
@@ -296,7 +288,6 @@
             }
         }, { passive: false });
 
-        // KONFIGURACE A POPISKY
         const ZKRATKY = { 
             "1mostotaceci": "most", "1novykostelamost": "kost", "1okolibytu": "byt", 
             "1pesizona": "pesi", "1usoudu": "soud", "1utrhu": "trh", "1uparku": "park", 
@@ -328,7 +319,6 @@
 
         let fotkyArray = [];
 
-        // OTEVŘENÍ GALERIE (S POSTUPNÝM NAČÍTÁNÍM)
         window.otevritMrizku = async function(slozka, idBodu) {
             const overlay = document.getElementById('gallery-overlay');
             const grid = document.getElementById('thumbnail-grid');
@@ -342,7 +332,6 @@
             fotkyArray = [];
             const zkratka = ZKRATKY[slozka] || "";
 
-            // Postupné načítání náhledů
             for (let i = 1; i <= 250; i++) {
                 const cislo = i.toString().padStart(3, '0');
                 const imgPath = `galerie/${slozka}/${cislo}${zkratka}.jpg`;
@@ -366,34 +355,26 @@
                     grid.appendChild(div);
                 };
                 imgCheck.src = imgPath;
-                // Pokud narazíme na 5 chyb za sebou, zastavíme hledání (pro rychlost)
                 imgCheck.onerror = () => {}; 
             }
         };
 
-   // FIXACE NA STRÁNCE A HISTORIE
-        document.addEventListener('DOMContentLoaded', () => { // Změna z 'load' na 'DOMContentLoaded'
-            // Falešný bod v historii pro "zámek"
+        // FIXACE NA STRÁNCE A POSUN
+        window.addEventListener('load', () => {
             if (!history.state) history.pushState({ page: 'home' }, "");
 
-            // Úpravy jen pro mobilní zobrazení
             if (window.innerWidth <= 768) {
-                // 1. Zvětšíme výsek (zoom) na 1.3 pro lepší čitelnost nápisu
-                aktualniZoom = 1.3;
-                mapaEl.style.transform = `scale(${aktualniZoom})`;
-
-                // 2. Odscrollujeme na nápis TARANTO (opraveno na 750)
                 setTimeout(() => {
                     const wrapper = document.getElementById('mapWrapper');
                     if (wrapper) wrapper.scrollTo(0, 750);
-                }, 300); // Můžeme i zkrátit čas z 600 na 300ms, bude to svižnější
+                }, 600);
             }
         });
+
         window.onpopstate = function(event) {
             if (document.getElementById('gallery-overlay').style.display === 'block') {
                 zavritMrizku(true);
             } else {
-                // Pokud jsme na hlavní mapě a uživatel dá "zpět", vrátíme ho "vpřed"
                 history.pushState({ page: 'home' }, "");
             }
         };
@@ -430,5 +411,3 @@
     </script>
 </body>
 </html>
-
-
